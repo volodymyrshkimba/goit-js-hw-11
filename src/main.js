@@ -1,24 +1,28 @@
+import SimpleLightbox from "simplelightbox";
+import "simplelightbox/dist/simple-lightbox.min.css";
+import iziToast from "izitoast";
+import "izitoast/dist/css/iziToast.min.css";
+import { createMarkup } from './js/render-functions';
+import { fetchByUserKey } from './js/pixabay-api';
+
 const formEL = document.querySelector('.search-form');
 const galleryEL = document.querySelector('.gallery');
+const galleryModal = new SimpleLightbox('.gallery a');
 
 const onFormElSubmit = event => {
 	event.preventDefault();
 	const userKeyword = event.target.elements.user_keyword.value;
 	if (userKeyword.trim() === '') {
-		console.log('Enter correct key');
 		return;
 	}
    
-	const searchParams = new URLSearchParams({
-		key: '45426984-94cd792edc1ba8c0f2dda7afb',
-		q: `${userKeyword.trim()}`,
-		image_type: 'photo',
-		orientation: 'horizontal',
-		safesearch: true,
-	})
+	const loaderEl = document.createElement('p');
+	loaderEl.classList.add('loader');
+	formEL.after(loaderEl);
 	
-	fetch(`https://pixabay.com/api/?${searchParams}`)
+	fetchByUserKey(userKeyword)
 		.then(response => {
+			galleryEL.innerHTML = '';
 			if (!response.ok) {
 				throw new Error(response.status);
 			}
@@ -26,35 +30,20 @@ const onFormElSubmit = event => {
 		})
 		.then(data => {
 			if (data.hits.length === 0) {
-				console.log("Sorry, there are no images matching your search query. Please try again!");
+				iziToast.error({
+					message: 'Sorry, there are no images matching your search query. Please try again!',
+					position: 'topRight',
+				});
 				return;
 			}
-			console.log(data.hits);
-			const markup = data.hits.map(imgObj => {
-				const { webformatURL, largeImageURL, tags, likes, views, comments, downloads } = imgObj;
-				return `<li class="item">
-        						<a class="item-link" href="${largeImageURL}"><img class="item-img" src="${webformatURL}" alt="" title="${tags}" /></a>
-								<ul class="item-desc">
-         						 <li>Likes
-									 	<p>${likes}</p>
-									 </li>
-      						    <li>Views
-									 	<p>${views}</p>
-									 </li>
-    						       <li>Comments
-									 	<p>${comments}</p>
-									 </li>
-     							    <li>Downloads
-									 	<p>${downloads}</p>
-									 </li>
-      					   </ul>
-                    </li>`
-			}).join('');
-			console.log(markup);
-			galleryEL.innerHTML = markup;
-
+			galleryEL.innerHTML = createMarkup(data.hits);
+			galleryModal.refresh();
 		})
-		.catch(err => console.log(err));
+		.catch(err => console.log(err))
+		.finally(() => {
+			loaderEl.remove();
+		});
+	formEL.reset();
 }
 
 formEL.addEventListener('submit', onFormElSubmit)
