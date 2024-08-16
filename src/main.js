@@ -15,6 +15,7 @@ const onFormElSubmit = event => {
 	if (userKeyword.trim() === '') {
 		return;
 	}
+	galleryEL.innerHTML = '';
    
 	const loaderEl = document.createElement('p');
 	loaderEl.classList.add('loader');
@@ -22,7 +23,6 @@ const onFormElSubmit = event => {
 	
 	fetchByUserKey(userKeyword)
 		.then(response => {
-			galleryEL.innerHTML = '';
 			if (!response.ok) {
 				throw new Error(response.status);
 			}
